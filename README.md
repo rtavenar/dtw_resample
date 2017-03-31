@@ -55,10 +55,10 @@ reference.
 
 And applying the transformation to some new data is done via:
 ```python
-s.transform(newdata)
+transformed_data = s.transform(newdata)
 ```
 
 If one wants to do both fit and transform on the same data, the following should do it:
 ```python
-s.fit_transform(data)
+transformed_data = s.fit_transform(data)
 ```
