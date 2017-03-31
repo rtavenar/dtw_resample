@@ -7,36 +7,55 @@ __author__ = 'Romain Tavenard romain.tavenard[at]univ-rennes2.fr'
 
 
 class DTWSampler(BaseEstimator, TransformerMixin):
-    def __init__(self, scaling_col_idx=0, reference_idx=0, n_sampling=100):
+    def __init__(self, scaling_col_idx=0, reference_idx=0, n_samples=100, interp_kind="slinear"):
         self.scaling_col_idx = scaling_col_idx
         self.reference_idx = reference_idx
-        self.n_sampling = n_sampling
+        self.n_samples = n_samples
+        self.interp_kind = interp_kind
         self.reference_series = None
 
     def fit(self, X):
-        xnew = numpy.linspace(0, 1, self.n_sampling)
-        ref_dim0 = X[self.reference_idx, :, self.scaling_col_idx]
-        f = interp1d(numpy.linspace(0, 1, ref_dim0.shape[0]), ref_dim0, kind='slinear')
-        self.reference_series = f(xnew)
+        end = last_index(X[self.reference_idx])
+        self.reference_series = resampled(X[self.reference_idx, :end, self.scaling_col_idx], n_samples=self.n_samples,
+                                          kind=self.interp_kind)
+        return self
 
     def transform(self, X):
-        X_resampled = numpy.zeros((X.shape[0], self.n_sampling, X.shape[2]))
-        xnew = numpy.linspace(0, 1, self.n_sampling)
+        X_resampled = numpy.zeros((X.shape[0], self.n_samples, X.shape[2]))
+        xnew = numpy.linspace(0, 1, self.n_samples)
         for i in range(X.shape[0]):
+            end = last_index(X[i])
             for j in range(X.shape[2]):
-                if j == self.scaling_col_idx:
+                X_resampled[i, :, j] = resampled(X[i, :end, j], n_samples=self.n_samples, kind=self.interp_kind)
+            # Compute indices based on alignment of dimension self.scaling_col_idx with the reference
+            indices_xy = [[] for _ in range(self.n_samples)]
+            for t_current, t_ref in dtw_path(X_resampled[i, :, self.scaling_col_idx], self.reference_series):
+                indices_xy[t_ref].append(t_current)
+            for j in range(X.shape[2]):
+                if False and j == self.scaling_col_idx:
                     X_resampled[i, :, j] = xnew
                 else:
-                    indices_xy = [[] for _ in range(self.n_sampling)]
-                    for t_current, t_ref in dtw_path(X[i, :, self.scaling_col_idx], self.reference_series):
-                        indices_xy[t_ref].append(t_current)
-                    ynew = numpy.array([numpy.mean(X[i, indices, j]) for indices in indices_xy])
-                    f = interp1d(numpy.linspace(0, 1, self.n_sampling), ynew, kind='slinear')
-                    X_resampled[i, :, j] = f(xnew)
+                    ynew = numpy.array([numpy.mean(X_resampled[i, indices, j]) for indices in indices_xy])
+                    X_resampled[i, :, j] = ynew
         return X_resampled
 
     def dump(self, fname):
         numpy.savetxt(fname, self.reference_series)
+
+
+def resampled(X, n_samples=100, kind="linear"):
+    xnew = numpy.linspace(0, 1, n_samples)
+    f = interp1d(numpy.linspace(0, 1, X.shape[0]), X, kind=kind)
+    return f(xnew)
+
+
+def last_index(X):
+    timestamps_infinite = numpy.all(~numpy.isfinite(X), axis=1)  # Are there NaNs padded after the TS?
+    if numpy.alltrue(~timestamps_infinite):
+        idx = X.shape[0]
+    else:  # Yes? then remove them
+        idx = numpy.nonzero(timestamps_infinite)[0][0]
+    return idx
 
 
 def empty_mask(s1, s2):
