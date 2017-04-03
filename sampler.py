@@ -7,20 +7,22 @@ __author__ = 'Romain Tavenard romain.tavenard[at]univ-rennes2.fr'
 
 
 class DTWSampler(BaseEstimator, TransformerMixin):
-    def __init__(self, scaling_col_idx=0, reference_idx=0, n_samples=100, interp_kind="slinear"):
+    def __init__(self, scaling_col_idx=0, reference_idx=0, d=1, n_samples=100, interp_kind="slinear"):
         self.scaling_col_idx = scaling_col_idx
         self.reference_idx = reference_idx
         self.n_samples = n_samples
+        self.d = d
         self.interp_kind = interp_kind
         self.reference_series = None
 
     def fit(self, X):
-        end = last_index(X[self.reference_idx])
-        self.reference_series = resampled(X[self.reference_idx, :end, self.scaling_col_idx], n_samples=self.n_samples,
+        _X = X.reshape((X.shape[0], -1, self.d))
+        end = last_index(_X[self.reference_idx])
+        self.reference_series = resampled(_X[self.reference_idx, :end, self.scaling_col_idx], n_samples=self.n_samples,
                                           kind=self.interp_kind)
         return self
 
-    def transform(self, X):
+    def transform_3d(self, X):
         X_resampled = numpy.zeros((X.shape[0], self.n_samples, X.shape[2]))
         xnew = numpy.linspace(0, 1, self.n_samples)
         for i in range(X.shape[0]):
@@ -38,6 +40,10 @@ class DTWSampler(BaseEstimator, TransformerMixin):
                     ynew = numpy.array([numpy.mean(X_resampled[i, indices, j]) for indices in indices_xy])
                     X_resampled[i, :, j] = ynew
         return X_resampled
+
+    def transform(self, X):
+        _X = X.reshape((X.shape[0], -1, self.d))
+        return self.transform_3d(_X).reshape((X.shape[0], -1))
 
     def dump(self, fname):
         numpy.savetxt(fname, self.reference_series)

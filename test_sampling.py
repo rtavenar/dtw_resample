@@ -6,7 +6,6 @@ from sampler import DTWSampler
 __author__ = 'Romain Tavenard romain.tavenard[at]univ-rennes2.fr'
 
 ref_dim = 0
-s = DTWSampler(scaling_col_idx=ref_dim, reference_idx=0, interp_kind="linear")
 
 data = []
 data.append(numpy.loadtxt("data/Xi_ref.txt"))
@@ -20,7 +19,9 @@ npy_arr = numpy.zeros((len(data), max_sz, d)) + numpy.nan
 for idx, ts in enumerate(data):
     sz = ts.shape[0]
     npy_arr[idx, :sz] = ts
+npy_arr = npy_arr.reshape((len(data), -1))
 
+s = DTWSampler(scaling_col_idx=ref_dim, reference_idx=0, d=d, interp_kind="linear")
 transformed_array = s.fit_transform(npy_arr)
 
 pylab.figure()
@@ -32,14 +33,14 @@ for i in range(d):
         pylab.title("Dimension %d" % i)
     if i == 0:
         pylab.ylabel("Original data")
-    for ts in npy_arr:
+    for ts in npy_arr.reshape((len(data), -1, d)):
         sz = ts.shape[0]
         pylab.plot(numpy.arange(sz), ts[:, i])
 
     pylab.subplot(2, 3, i + d + 1)  # Transformed data
     if i == 0:
         pylab.ylabel("Resampled data")
-    for ts in transformed_array:
+    for ts in transformed_array.reshape((len(data), -1, d)):
         sz = ts.shape[0]
         pylab.plot(numpy.arange(sz), ts[:, i])
 pylab.show()
