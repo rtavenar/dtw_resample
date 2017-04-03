@@ -46,10 +46,10 @@ s = DTWSampler(scaling_col_idx=0, reference_idx=0, d=d)
 s.fit(data)
 ```
 
-Here, `data` is a 2-dimensional array of dimension $(n_{ts}, l * d)$ where $n_ts$ is the number of time series in the 
-dataset, $l$ is the length of a time series and $d$ is the number of modalities provided for each time-stamp 
-(including base modality), which is passed during `DTWSampler` object creation.
-Basically, if you have your data stored in a 3-dimensional array `data_3d`, you should just do:
+Here, `data` is a 2-dimensional array of shape `(n_ts, l * d)` where `n_ts` is the number of time series in the 
+dataset, `l` is the length of a time series and `d` is the number of modalities provided for each time-stamp 
+(including base modality).
+Basically, if you have your data stored in a 3-dimensional array `data_3d` of shape `(n_ts, l, d)`, you should just do:
 ```python
 data = data_3d.reshape((data_3d.shape[0], -1))
 ```
@@ -69,7 +69,7 @@ transformed_data = s.fit_transform(data)
 ```
 
 Note that, in order to comply with `sklearn` standards, `transformed_data` is a 2d-array. 
-If you want to get back to your $n_{ts}, n_{samples}, d)$ shape, just use: 
+If you want to get back to your `(n_ts, n_samples, d)` shape, just use: 
 ```python
 transformed_data = s.fit_transform(data).reshape((data.shape[0], -1, s.d))
 ```
