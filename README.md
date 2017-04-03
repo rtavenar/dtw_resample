@@ -35,7 +35,8 @@ reference :)
 
 ## Code details
 
-Example tests are provided in files `test_sampling.py` and `test_clustering.py`.
+Example tests are provided in files `test_sampling.py` and `test_clustering.py` or, as notebooks, in `sampling.ipynb`
+and `clustering.ipynb`.
 In a few words, data should be resampled using the class `DTWSampler` that is supposed to be a standard `sklearn` 
 transformer.
 Hence, fitting the sampler can be performed via:
