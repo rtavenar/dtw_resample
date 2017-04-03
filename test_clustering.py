@@ -26,7 +26,8 @@ for idx_rep in range(n_rep):
     for idx, ts in enumerate(data):
         sz = ts.shape[0]
         npy_arr[idx + idx_rep * len(data), :sz] = ts + 0.1 * numpy.random.randn(sz, d) * ts.std(axis=0)
+npy_arr = npy_arr.reshape(-1, max_sz * d)
 
 dtw_kmeans = Pipeline([('dtw_sampler', s), ('l2-kmeans', km)])
 
-print(dtw_kmeans.fit_predict(npy_arr.reshape(-1, max_sz * d)))
+print(dtw_kmeans.fit_predict(npy_arr))
