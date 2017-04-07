@@ -7,9 +7,7 @@ __author__ = 'Romain Tavenard romain.tavenard[at]univ-rennes2.fr'
 
 
 class DTWSampler(BaseEstimator, TransformerMixin):
-    saved_dtw_path = []
-    
-    def __init__(self, scaling_col_idx=0, reference_idx=0, d=1, n_samples=100,interp_kind="slinear",save_path=False):
+    def __init__(self, scaling_col_idx=0, reference_idx=0, d=1, n_samples=100,interp_kind="slinear", save_path=False):
         self.scaling_col_idx = scaling_col_idx
         self.reference_idx = reference_idx
         self.n_samples = n_samples
@@ -19,6 +17,7 @@ class DTWSampler(BaseEstimator, TransformerMixin):
         
         # if saving dtw_Path
         self.save_path = save_path
+        self.saved_dtw_path = None
         
     def fit(self, X):
         _X = X.reshape((X.shape[0], -1, self.d))
@@ -36,23 +35,21 @@ class DTWSampler(BaseEstimator, TransformerMixin):
                 X_resampled[i, :, j] = resampled(X[i, :end, j], n_samples=self.n_samples, kind=self.interp_kind)
             # Compute indices based on alignment of dimension self.scaling_col_idx with the reference
             indices_xy = [[] for _ in range(self.n_samples)]
-            
-            if self.save_path and len(DTWSampler.saved_dtw_path)==(self.d+1): # verify if full dtw path already exists
-                current_path = DTWSampler.saved_dtw_path[i]
-            else:
-                # append path
-                current_path = dtw_path(X_resampled[i, :, self.scaling_col_idx], self.reference_series)           
-                if self.save_path: # save current path is asked
-                    DTWSampler.saved_dtw_path.append(current_path)                
 
-            for t_current, t_ref in current_path:
+            if i == self.reference_idx:
+                path = [(idx, idx) for idx in range(self.reference_series.shape[0])]
+            elif self.saved_dtw_path is None:
+                path = dtw_path(X_resampled[i, :, self.scaling_col_idx], self.reference_series)
+                if self.save_path:
+                    self.saved_dtw_path = path
+            else:
+                path = self.saved_dtw_path
+
+            for t_current, t_ref in path:
                 indices_xy[t_ref].append(t_current)
             for j in range(X.shape[2]):
-                if False and j == self.scaling_col_idx:
-                    X_resampled[i, :, j] = xnew
-                else:
-                    ynew = numpy.array([numpy.mean(X_resampled[i, indices, j]) for indices in indices_xy])
-                    X_resampled[i, :, j] = ynew
+                ynew = numpy.array([numpy.mean(X_resampled[i, indices, j]) for indices in indices_xy])
+                X_resampled[i, :, j] = ynew
         return X_resampled
 
     def transform(self, X):
@@ -122,10 +119,10 @@ def dtw_path(s1, s2):
     
     
 if __name__=='__main__':
-    npy_arr = numpy.load('data/sample.npy')
     import time
+    npy_arr = numpy.load('data/sample.npy')
+    s = DTWSampler(scaling_col_idx=0, reference_idx=0, d=1, n_samples=20, save_path=True)
     t0 = time.time()
     for i in range(1000):
-        s = DTWSampler(scaling_col_idx=0, reference_idx=0, d=1,n_samples=20,save_path=True)
         transformed_array = s.fit_transform(npy_arr)
     print(time.time()-t0)

@@ -74,3 +74,10 @@ If you want to get back to your `(n_ts, n_samples, d)` shape, just use:
 ```python
 transformed_data = s.fit_transform(data).reshape((data.shape[0], -1, s.d))
 ```
+
+## `save_path=True` option
+
+We have added an option `save_path` to `DTWSampler`. This one should be used with great care!
+It correspond to cases for which the data fed to the model is composed of a single reference time series at index 
+`reference_idx` and all other time series have **the same** time shift with respect to the reference, such that it is
+sufficient to compute a single DTW instead of one DTW per time series.
