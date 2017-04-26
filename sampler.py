@@ -1,7 +1,13 @@
 import numpy
 from sklearn.base import BaseEstimator, TransformerMixin
-
 from scipy.interpolate import interp1d
+
+try:
+    from cydtw import dtw_path
+except:
+    print("Could not import efficient DTW computation from cydtw package, using pure Python alternative (slower)")
+    print("\'pip install cydtw\' should help")
+    from utils import dtw_path
 
 __author__ = 'Romain Tavenard romain.tavenard[at]univ-rennes2.fr'
 
@@ -39,7 +45,8 @@ class DTWSampler(BaseEstimator, TransformerMixin):
             if i == self.reference_idx:
                 path = [(idx, idx) for idx in range(self.reference_series.shape[0])]
             elif self.saved_dtw_path is None:
-                path = dtw_path(X_resampled[i, :, self.scaling_col_idx], self.reference_series)
+                path, _ = dtw_path(X_resampled[i, :, self.scaling_col_idx].reshape((-1, 1)),
+                                self.reference_series.reshape((-1, 1)))
                 if self.save_path:
                     self.saved_dtw_path = path
             else:
@@ -73,49 +80,6 @@ def last_index(X):
     else:  # Yes? then remove them
         idx = numpy.nonzero(timestamps_infinite)[0][0]
     return idx
-
-
-def empty_mask(s1, s2):
-    l1 = s1.shape[0]
-    l2 = s2.shape[0]
-    mask = numpy.zeros((l1 + 1, l2 + 1))
-    mask[1:, 0] = numpy.inf
-    mask[0, 1:] = numpy.inf
-    return mask
-
-
-def dtw_path(s1, s2):
-    l1 = s1.shape[0]
-    l2 = s2.shape[0]
-
-    cum_sum = numpy.zeros((l1 + 1, l2 + 1))
-    cum_sum[1:, 0] = numpy.inf
-    cum_sum[0, 1:] = numpy.inf
-    predecessors = [([None] * l2) for i in range(l1)]
-
-    for i in range(l1):
-        for j in range(l2):
-            if numpy.isfinite(cum_sum[i + 1, j + 1]):
-                dij = numpy.linalg.norm(s1[i] - s2[j]) ** 2
-                pred_list = [cum_sum[i, j + 1], cum_sum[i + 1, j], cum_sum[i, j]]
-                argmin_pred = numpy.argmin(pred_list)
-                cum_sum[i + 1, j + 1] = pred_list[argmin_pred] + dij
-                if i + j > 0:
-                    if argmin_pred == 0:
-                        predecessors[i][j] = (i - 1, j)
-                    elif argmin_pred == 1:
-                        predecessors[i][j] = (i, j - 1)
-                    else:
-                        predecessors[i][j] = (i - 1, j - 1)
-
-    i = l1 - 1
-    j = l2 - 1
-    best_path = [(i, j)]
-    while predecessors[i][j] is not None:
-        i, j = predecessors[i][j]
-        best_path.insert(0, (i, j))
-        
-    return best_path
     
     
 if __name__=='__main__':
