@@ -34,4 +34,4 @@ def dtw_path(s1, s2):
         i, j = predecessors[i][j]
         best_path.insert(0, (i, j))
 
-    return best_path
+    return best_path, cum_sum[-1, -1]

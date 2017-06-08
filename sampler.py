@@ -34,7 +34,6 @@ class DTWSampler(BaseEstimator, TransformerMixin):
 
     def transform_3d(self, X):
         X_resampled = numpy.zeros((X.shape[0], self.n_samples, X.shape[2]))
-        xnew = numpy.linspace(0, 1, self.n_samples)
         for i in range(X.shape[0]):
             end = last_index(X[i])
             for j in range(X.shape[2]):
